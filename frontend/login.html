@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title></title>
+  <link href="static/style.css" rel="stylesheet" />
+</head>
+<body>
+
+    <div id="auth-container">
+        <h2>BeatLemon Login</h2>
+        <div id="login-error-message">Please enter your Login credentials</div>
+        <input id="auth_email" type="email" placeholder="Email" />
+        <input id="auth_pass" type="password" placeholder="Password" />
+        <input id="auth_confirm_pass" type="password" placeholder="Confirm Password" style="display: none;" />
+        <input id="auth_username" type="text" placeholder="Username" style="display: none;" />
+        <input id="auth_registration_key" type="text" placeholder="Registration Key" style="display: none;" />
+        <div class="button-row">
+            <button id="submit-btn" onclick="submitAuthForm()">Submit</button>
+            <button id="toggle-btn" onclick="toggleAuthMode()">Register</button>
+        </div>
+    </div>
+
+    <script src="static/api.js"></script>
+    <script src="static/auth.js"></script>
+</body>
+
+</html>

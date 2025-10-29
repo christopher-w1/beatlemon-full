@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Beat Lemon</title>
+  <link href="static/style.css" rel="stylesheet" />
+  <link href="static/index.css" rel="stylesheet" />
+</head>
+<body class="">
+  <script src="static/check_auth.js"></script>
+  <script src="static/api.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+
+  <div id="main-container">
+
+    <div id="top-panel">
+        <div class="button-row">
+            <button id="browse-music-btn" onclick="showView('recommendations-view')">
+            <i data-lucide="compass">Browse</i> 
+            </button>
+            <button id="show-library-btn" onclick="showView('library-view')">
+            <i data-lucide="library">Library</i> 
+            </button>
+            <button id="show-playback-btn" onclick="showView('playback-view')">
+            <i data-lucide="circle-play">Library</i> 
+            </button>
+        </div>
+        <span id="user-greeting">Hello, <b class="user-name">unknown user</b><b>!</b></span>
+        <div class="button-row">
+            <button id="toggle-settings-btn" onclick="toggleSettings()">
+                <i data-lucide="settings">Settings</i>
+            </button>
+            <button id="logout-btn" onclick="logout()">
+                <i data-lucide="log-out">Logout</i>
+            </button>
+        </div>
+    </div>
+    
+
+    <div id="music-browser">
+        <div id="recommendations-view">
+            <div id="search-panel">
+                <div id="search-bar">
+                    <input id="search-input" placeholder="Find a song...">
+                    <button id="search-button">
+                        <i data-lucide="search">Search</i> 
+                    </button>
+                </div>
+            <div id="search-results"></div>
+        </div>
+            <div id="recommendations-container">
+                Listen to a Genre...
+                <div class="recommendations-row" id="genre-recommendations"></div>
+            </div>
+        </div>
+
+        <div id="library-view" class="hidden">
+        </div>
+
+        <div id="playback-view" class="hidden">
+            <div id="playback-cover"><img src="static/icons8-music.png"></div>
+            <div id="lyrics"></div>
+        </div>
+    </div>
+
+    <div id="playlist">
+        <div id="playlist-title">Current Playlist</div>
+        <div id="playlist-item-container"></div>
+        <div id="sidebar-cover" class="hidden">
+            <img src="static/beat-lemon2.png">
+        </div>
+    </div>
+
+    <div id="settings" class="hidden">
+        <div>Appearance Settings</div>
+        <div class="settings-item">
+            <p>Use lists instead of cards</p>
+            <button><i data-lucide="square"></i></button>
+        </div>
+        <div class="settings-block">
+            <label><b>UI Color</b></label> <div></div> <div></div>
+
+            <label for="tone-slider">Tone</label>
+            <input type="range" id="tone-slider" min="0" max="360" value="220">
+            <div class="value"><span id="tone-val">220</span>°</div>
+        
+            <label for="saturation-slider">Saturation</label>
+            <input type="range" id="saturation-slider" min="0" max="100" value="30">
+            <div class="value"><span id="sat-val">30</span>%</div>
+  
+            <label for="brightness-slider">Brightness</label>
+            <input type="range" id="brightness-slider" min="0" max="100" value="15">
+            <div class="value"><span id="bright-val">15</span>%</div>
+        </div>
+        <div>DJ Settings</div>
+        <div class="settings-item">
+            <p>Prevent genre drift</p>
+            <button><i data-lucide="square"></i></button>
+        </div>
+        <div class="settings-block">
+            <label for="queue-slider">Enqueue songs</label>
+            <input type="range" id="queue-slider" min="1" max="10" value="4">
+            <div class="value"><span id="queue-slider-val">4</span></div>
+
+            <label for="queue-slider">Min. Similarity</label>
+            <input type="range" id="queue-slider" min="1" max="10" value="5">
+            <div class="value"><span id="queue-slider-val">0.5</span></div>
+        </div>
+    </div>
+
+    <div id="player-panel">
+        <div id="playback-controls" class="button-row">
+            <button id="prev-track-btn" onclick="prevTrack()">
+                <i data-lucide="skip-back">Prev</i>
+            </button>
+            <button id="play-pause-btn" onclick="togglePlayback()">
+                <i data-lucide="play">Play</i>
+            </button>
+            <button id="next-track-btn" onclick="nextTrack()">
+                <i data-lucide="skip-forward">Next</i>
+            </button>
+        </div>
+
+        <div id="progress-container">
+            <div id="progress-bar"> </div>
+        </div>
+        <div id="progress-time">0:00 / 0:00</div>
+
+        <div class="button-row">
+            <button id="auto-dj-btn" onclick="toggleAutoDj()" class="mini-btn" title="Auto-DJ">
+                <i data-lucide="cpu"></i>
+            </button>
+            
+        <button id="toggle-playlist-btn" onclick="togglePlaylist()" class="mini-btn active" title="Show/Hide Playlist">
+            <i data-lucide="list">Toggle Playlist</i>
+        </button>
+            <button id="mute-btn">
+                <i data-lucide="volume">Mute</i>
+            </button>
+        </div>
+
+        <div id="volume-container">
+            <div id="volume-bar"></div>
+        </div>
+
+    </div>
+  </div>
+
+  <audio id="audio-player"></audio>
+
+  <script src="static/tools.js"></script>
+  <script src="static/lyrics.js"></script>
+  <script src="static/index.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

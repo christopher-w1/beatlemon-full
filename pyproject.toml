@@ -1,0 +1,26 @@
+[project]
+name = "pymulise"
+version = "0.1.0"
+description = "Python Music Library Server"
+readme = "README.md"
+authors = [
+    { name = "christopher-w1" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115.12",
+    "mutagen>=1.47.0",
+    "r128gain>=1.0.7",
+    "requests>=2.32.3",
+    "uvicorn>=0.34.2",
+    "tqdm>=4.67.1",
+    "beautifulsoup4>=4.13.4",
+    "pillow>=11.2.1"
+]
+
+[project.scripts]
+pymulise = "pymulise:main.main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
