@@ -1,5 +1,5 @@
 import os
-import json
+import msgpack
 import time
 import random
 from tqdm import tqdm
@@ -15,6 +15,19 @@ from backend.filesys_utils import find_song_paths
 from backend.wikicrawler import get_band_genres
 
 VARIOUS_TERMS = ["various artists", "verschiedene interpreten", "verschiedene künstler", "various"]
+
+def save_msgpack(path: str, data):
+    """Write Python object to a .msgpack file."""
+    with open(path, "wb") as f:
+        msgpack.pack(data, f, use_bin_type=True)
+
+
+def load_msgpack(path: str):
+    """Read Python object from a .msgpack file."""
+    with open(path, "rb") as f:
+        msg = msgpack.unpack(f, raw=False)
+        return msg if isinstance(msg, list) else []
+
 
 def fetch_lastfm_data_minimal(args: Tuple[str, str, str, str]) -> Tuple[str, int, List[str]]:
     song_id, artist, title, api_key = args
@@ -81,17 +94,17 @@ def init_library():
         os.makedirs("data", exist_ok=True)
         is_new = True
     # Make json files if they don't exist
-    if not os.path.exists("data/songs.json"):
-        with open("data/songs.json", "w", encoding="utf-8") as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
+    if not os.path.exists("data/songs.msgpack"):
+        with open("data/songs.msgpack", "w", encoding="utf-8") as f:
+            save_msgpack("data/songs.msgpack", [])
         is_new = True
-    if not os.path.exists("data/albums.json"):
-        with open("data/albums.json", "w", encoding="utf-8") as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
-    if not os.path.exists("data/artists.json"):
+    if not os.path.exists("data/albums.msgpack"):
+        with open("data/albums.msgpack", "w", encoding="utf-8") as f:
+            save_msgpack("data/albums.msgpack", [])
         is_new = True
-        with open("data/artists.json", "w", encoding="utf-8") as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
+    if not os.path.exists("data/artists.msgpack"):
+        with open("data/artists.msgpack", "w", encoding="utf-8") as f:
+            save_msgpack("data/artists.msgpack", [])
         is_new = True
     return is_new
 
@@ -104,22 +117,19 @@ def load_library() -> tuple[list[Song], list[Album], list[Artist]]:
         return [], [], []
 
     # SONGS
-    with open("data/songs.json", "r", encoding="utf-8") as f:
-        song_dicts = json.load(f)
+    song_dicts = load_msgpack("data/songs.msgpack")
     song_objects = [Song.from_dict(d) for d in tqdm(song_dicts, desc="Loading Songs")]
     song_map = {s.get_hash(): s for s in song_objects}
     print(f"✓ Loaded {len(song_objects)} songs")
 
     # ALBUMS
-    with open("data/albums.json", "r", encoding="utf-8") as f:
-        album_dicts = json.load(f)
+    album_dicts = load_msgpack("data/albums.msgpack")
     album_objects = [Album.from_dict(d, song_map) for d in tqdm(album_dicts, desc="Loading Albums")]
     album_map = {a.hash: a for a in album_objects}
     print(f"✓ Loaded {len(album_objects)} albums")
 
     # ARTISTS
-    with open("data/artists.json", "r", encoding="utf-8") as f:
-        artist_dicts = json.load(f)
+    artist_dicts = load_msgpack("data/artists.msgpack")
     artist_objects = [Artist.from_dict(d, song_map, album_map) for d in tqdm(artist_dicts, desc="Loading Artists")]
     print(f"✓ Loaded {len(artist_objects)} artists")
 
@@ -180,8 +190,8 @@ def scan_library(lastfm_api_key: str, music_dir: str, verbose: bool = False) -> 
             was_updated = True
             
     if was_updated:
-        with open("data/songs.json", "w", encoding="utf-8") as f:
-            json.dump([s.to_dict() for s in updated_songs], f, ensure_ascii=False, indent=2)
+        with open("data/songs.msgpack", "w", encoding="utf-8") as f:
+            save_msgpack("data/songs.msgpack", [s.to_dict() for s in updated_songs])
             
     # Calculate loudness and peak for songs without analysis
     songs_to_analyze = [s for s in updated_songs if not s.loudness]
@@ -202,17 +212,12 @@ def scan_library(lastfm_api_key: str, music_dir: str, verbose: bool = False) -> 
                     if loudness is not None:
                         song.loudness = loudness
                         song.peak = peak
-                    #    print(f"✓ {song.title}: {loudness:.2f} LUFS, Peak: {peak:.2f} dBFS")
-                    #else:
-                    #    print(f"✗ {song.title}: Loudness analysis failed")
                     was_updated = True
                 except Exception as e:
                     pass
-                    #print(f"✗ {song.title}: Exception during analysis: {e}")
 
         if was_updated:
-            with open("data/songs.json", "w", encoding="utf-8") as f:
-                json.dump([s.to_dict() for s in updated_songs], f, ensure_ascii=False, indent=2)
+            save_msgpack("data/songs.msgpack", [s.to_dict() for s in updated_songs])
     
     
     song_without_lastfm = [s for s in updated_songs if not s.lastfm_playcount and not s.additional_data.get("lastfm_update", False)]
@@ -297,16 +302,9 @@ def scan_library(lastfm_api_key: str, music_dir: str, verbose: bool = False) -> 
     # Speichern
     print("Saving updated library...")
     os.makedirs("output", exist_ok=True)
-
-    with open("data/songs.json", "w", encoding="utf-8") as f:
-        json.dump([s.to_dict() for s in updated_songs], f, ensure_ascii=False, indent=2)
-
-    with open("data/albums.json", "w", encoding="utf-8") as f:
-        json.dump([a.to_dict() for a in album_objects], f, ensure_ascii=False, indent=2)
-
-    with open("data/artists.json", "w", encoding="utf-8") as f:
-        json.dump([a.to_dict() for a in artist_objects], f, ensure_ascii=False, indent=2)
-
+    save_msgpack("data/songs.msgpack", [s.to_dict() for s in updated_songs])
+    save_msgpack("data/albums.msgpack", [a.to_dict() for a in album_objects])
+    save_msgpack("data/artists.msgpack", [a.to_dict() for a in artist_objects])
     print(f"✓ Library updated successfully with {len(new_songs)} new songs.")
     return updated_songs, album_objects, artist_objects
 
