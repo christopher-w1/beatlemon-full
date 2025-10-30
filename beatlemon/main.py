@@ -22,7 +22,7 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
 DEBUG_SKIP = True
 
-config = Config(os.path.expanduser(".beatlemon-config.json"))
+config = Config("data/config.json")
 library_service = LibraryService(config)
 user_service = UserService(registration_key="pymulise")
 scene_mapper = SceneMapper()
@@ -376,12 +376,13 @@ async def get_song_recommendations3(n: str):
 
 
 @app.get("/", response_class=FileResponse)
+@app.get("/index.html", response_class=FileResponse)
 async def serve_index():
     """Serve the main page"""
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
-@app.get("/login", response_class=FileResponse)
+@app.get("/login.html", response_class=FileResponse)
 async def serve_login():
     """Serve the login page"""
     return FileResponse(os.path.join(FRONTEND_DIR, "login.html"))

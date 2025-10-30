@@ -1,5 +1,8 @@
 // ---------------- API Functions ----------------
-const API_BASE = window.location.href.split('/').slice(0, -1).join('/api');
+const parent_url_2 = window.location.href.split('/').slice(0, -1).join('/');
+const API_BASE = `${parent_url_2}/api`;
+
+console.log(`api_base=${API_BASE}, parent_url=${parent_url_2}`)
 
 async function apiRegisterUser({ registration_key, email, username, password, lastfm_user }) {
     const response = await fetch(`${API_BASE}/register`, {
