@@ -5,7 +5,7 @@ from backend.model_song import Song
 from backend.model_artist import Artist
 from hashlib import sha256
 
-from beatlemon.config import Config
+from config import Config
 
 def editing_distance(s1: str, s2: str) -> int:
     if len(s1) < len(s2):
