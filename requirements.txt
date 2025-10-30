@@ -4,3 +4,5 @@ requests
 fastapi
 uvicorn
 pillow
+bs4
+msgpack
