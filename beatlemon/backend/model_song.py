@@ -28,8 +28,6 @@ class Song:
         self.genres = []
         self.play_count = 0
         self.popularity = 0.5
-        self.last_played = ""
-        self.lyrics = ""
         self.explicit = False
         self.bitrate = 0
         self.format = ""
@@ -100,7 +98,6 @@ class Song:
             self.genres = _get_tag_list(tags, "\xa9gen")
             date = _get_tag_entry(tags, "\xa9day", "0")
             self.release_year = int(date[:4]) if date else 0
-            self.lyrics = _get_tag_entry(tags, "\xa9lyr")
             track_info = _get_tag_list(tags, "trkn")
             self.track_number = track_info[0][0] if track_info else 0
             disc_info = _get_tag_list(tags, "disk")
@@ -114,7 +111,6 @@ class Song:
             self.genres = _get_tag_list(tags, "genre")
             date = _get_tag_entry(tags, "date", "0")
             self.release_year = int(date[:4]) if date else 0
-            self.lyrics = _get_tag_entry(tags, "lyrics")
             track_str = _get_tag_entry(tags, "tracknumber", "0")
             self.track_number = int(track_str.split("/")[0]) if track_str else 0
             disc_str = _get_tag_entry(tags, "discnumber", "0")
@@ -132,8 +128,6 @@ class Song:
 
         if "explicit" in tags:
             self.explicit = _get_tag_entry(tags, "explicit").lower() in ["1", "true", "yes"]
-        elif "lyrics" in tags and "explicit" in _get_tag_entry(tags, "lyrics", "").lower():
-            self.explicit = True
 
         self.play_count = 0
         self.last_played = datetime.now().isoformat()
@@ -209,7 +203,6 @@ class Song:
             "play_count": self.play_count,
             "popularity": self.popularity,
             "last_played": self.last_played,
-            "lyrics": self.lyrics,
             "explicit": self.explicit,
             "bitrate": self.bitrate,
             "format": self.format,
@@ -236,7 +229,6 @@ class Song:
             "release_year": self.release_year,
             "genres": self.genres,
             "play_count": self.play_count + self.lastfm_playcount,
-            "lyrics": self.lyrics,
             "cover_hash": sha256(str(self.cover_art).encode()).hexdigest(),
             "loudness": self.loudness,
         }
@@ -257,7 +249,6 @@ class Song:
         song.play_count = data.get("play_count", 0)
         song.popularity = data.get("popularity", 0.5)
         song.last_played = data.get("last_played", "")
-        song.lyrics = data.get("lyrics", "")
         song.explicit = data.get("explicit", False)
         song.bitrate = data.get("bitrate", 0)
         song.format = data.get("format", "")
