@@ -164,7 +164,7 @@ async function apiGetSession(sessionId) {
 async function apiGetRecommendations(songHash, n = 10, songSeed=null, sessionId=null) {
     if (!songHash) throw new Error("songHash is required");
 
-    const url = new URL(`${API_BASE}/recommendations/${songHash}`);
+    const url = new URL(`${API_BASE}/recommendations/song/${songHash}`);
     if (songSeed) {
         url.searchParams.append("seed_hash", songSeed);
     }
@@ -183,7 +183,7 @@ async function apiGetRecommendations(songHash, n = 10, songSeed=null, sessionId=
 async function apiGetRecommendationsGenre(genre) {
     if (!genre) throw new Error("Genre is required");
 
-    const url = new URL(`${API_BASE}/songs-from-genre/${genre}`);
+    const url = new URL(`${API_BASE}/recommendations/genre/${genre}`);
 
     const response = await fetch(url.toString());
     if (!response.ok) {
@@ -209,7 +209,7 @@ async function apiGetLyrics(song_hash) {
 }
 
 async function apiGetRecommendationsByScene() {
-    const url = new URL(`${API_BASE}/recommendations-by-scene/10`);
+    const url = new URL(`${API_BASE}/recommendations/main-genres/10`);
 
     const response = await fetch(url.toString());
     if (!response.ok) {

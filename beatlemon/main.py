@@ -363,7 +363,7 @@ async def get_session(session_id: str):
         
         
 @require_session(user_service)
-@app.get("/api/recommendations/{song_hash}")
+@app.get("/api/recommendations/song/{song_hash}")
 async def get_song_recommendations(song_hash: str, 
                                    seed_hash: str | None = Query(None), 
                                    session_id: str | None = Query(None)):
@@ -388,7 +388,7 @@ async def get_song_recommendations(song_hash: str,
    
     
 @require_session(user_service)
-@app.get("/api/songs-from-genre/{genre}")
+@app.get("/api/recommendations/genre/{genre}")
 async def get_song_recommendations2(genre: str):
     all_songs, _, _ = await library_service.get_snapshot()
     recommendations = [song.to_simple_dict() for 
@@ -400,7 +400,7 @@ async def get_song_recommendations2(genre: str):
     
     
 @require_session(user_service)
-@app.get("/api/recommendations-by-scene/{n}")
+@app.get("/api/recommendations/main-genres/{n}")
 async def get_song_recommendations3(n: str):
     all_songs, _, _ = await library_service.get_snapshot()
     scene_dict = await scene_mapper.sample_songs_by_scene(all_songs, int(n))
