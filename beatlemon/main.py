@@ -20,7 +20,6 @@ from datetime import datetime
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
-DEBUG_SKIP = True
 
 config = Config("data/config.json")
 library_service = LibraryService(config)
@@ -64,11 +63,6 @@ def require_session(user_service: "UserService", key_name="session_key"):
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, request: Request, **kwargs):
-            if DEBUG_SKIP:
-                kwargs["email"] = "debug@example.com"
-                kwargs["username"] = "DebugUser"
-                return await func(*args, request=request, **kwargs)
-            # Session-Key zuerst aus JSON Body, dann Query
             try:
                 data = await request.json()
             except:
@@ -82,7 +76,6 @@ def require_session(user_service: "UserService", key_name="session_key"):
             if not user:
                 raise HTTPException(status_code=401, detail="Invalid session key")
 
-            # user als Keyword-Argument an die Route weitergeben
             kwargs["email"] = user["email"]
             kwargs["username"] = user["username"]
             return await func(*args, request=request, **kwargs)
@@ -90,6 +83,7 @@ def require_session(user_service: "UserService", key_name="session_key"):
     return decorator
 
 
+@require_session(user_service)
 @app.post("/api/search_songs")
 async def search_songs(request: Request):
     """
@@ -325,6 +319,7 @@ async def update_session(session_id: str, request: Request):
     }
 
 
+@require_session(user_service)
 @app.get("/api/session/get/{session_id}")
 async def get_session(session_id: str):
     session = sessions.get(session_id)
@@ -333,6 +328,7 @@ async def get_session(session_id: str):
     return session
         
         
+@require_session(user_service)
 @app.get("/api/recommendations/{song_hash}")
 async def get_song_recommendations(song_hash: str, 
                                    seed_hash: str | None = Query(None), 
@@ -354,6 +350,7 @@ async def get_song_recommendations(song_hash: str,
     }  
    
     
+@require_session(user_service)
 @app.get("/api/songs-from-genre/{genre}")
 async def get_song_recommendations2(genre: str):
     all_songs, _, _ = await library_service.get_snapshot()
@@ -365,6 +362,7 @@ async def get_song_recommendations2(genre: str):
     }
     
     
+@require_session(user_service)
 @app.get("/api/recommendations-by-scene/{n}")
 async def get_song_recommendations3(n: str):
     all_songs, _, _ = await library_service.get_snapshot()
