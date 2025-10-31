@@ -378,7 +378,7 @@ async def get_song_recommendations3(n: str):
 @app.get("/", response_class=RedirectResponse)
 async def redirect_to_index():
     """Redirect / to /index.html"""
-    return RedirectResponse(url="/index.html")
+    return RedirectResponse("index.html")
 
 
 @app.get("/index.html", response_class=FileResponse)
