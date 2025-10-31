@@ -27,7 +27,7 @@ class Config:
     def setup_interactive(self):
         print("Setting up configuration (only once)...")
         self.lastfm_api_key = input("Enter your LASTFM_API_KEY: ").strip()
-        self.access_token = input("Enter your ACCESS_TOKEN for PyMuLise: ").strip()
+        self.registration_key = input("Enter your secret registration key: ").strip()
         self.music_dir = input("Enter the absolute path to your MUSIC_DIR: ").strip()
         self.rest_api_port = int(input("Enter your REST_API_PORT (e.g. 8080): ").strip())
         self.save()

@@ -3,7 +3,7 @@ import os, io
 from pathlib import Path
 from typing import Optional
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -24,7 +24,7 @@ DEBUG_SKIP = True
 
 config = Config("data/config.json")
 library_service = LibraryService(config)
-user_service = UserService(registration_key="pymulise")
+user_service = UserService(registration_key=config.registration_key)
 scene_mapper = SceneMapper()
 sessions = {}
 
@@ -375,7 +375,12 @@ async def get_song_recommendations3(n: str):
     }
 
 
-@app.get("/", response_class=FileResponse)
+@app.get("/", response_class=RedirectResponse)
+async def redirect_to_index():
+    """Redirect / to /index.html"""
+    return RedirectResponse(url="/index.html")
+
+
 @app.get("/index.html", response_class=FileResponse)
 async def serve_index():
     """Serve the main page"""
