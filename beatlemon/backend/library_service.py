@@ -59,18 +59,10 @@ class LibraryService:
             return self.library_snapshot or ([], [], [])
         
     async def has_song(self, song_hash: str) -> bool:
-        async with self._lock:
-            for song in self.library_snapshot[0]:
-                if song.get_hash() == song_hash:
-                    return True
-        return False
+        return song_hash in self.song_map
     
     async def get_song(self, song_hash: str) -> Song | None:
-        async with self._lock:
-            for song in self.library_snapshot[0]:
-                if song and song.get_hash() == song_hash:
-                    return song
-        return None
+        return self.song_map.get(song_hash, None)
     
     async def get_song_by_string(self, metadata: str) -> Song | None:
         async with self._lock:
@@ -110,11 +102,7 @@ class LibraryService:
             return [song for _, song in sorted(matches, key=lambda x: x[0], reverse=True)]
     
     async def get_album(self, album_hash: str) -> Album | None:
-        async with self._lock:
-            for album in self.library_snapshot[1]:
-                if album.hash == album_hash:
-                    return album
-        return None
+        return self.album_map.get(album_hash, None)
     
     async def get_artist(self, artist_name: str) -> Artist | None:
         async with self._lock:
