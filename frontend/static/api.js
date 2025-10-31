@@ -195,17 +195,33 @@ async function apiGetRecommendationsGenre(genre) {
 }
 
 async function apiGetLyrics(song_hash) {
-    if (!song_hash) throw new Error("Genre is required");
+    if (!song_hash) throw new Error("song_hash is required");
+    const sessionKey = localStorage.getItem("session_key");
+    if (!sessionKey) throw new Error("No session_key found in localStorage");
+    const url = new URL(`${API_BASE}/lyrics/song/${encodeURIComponent(song_hash)}`);
 
-    const url = new URL(`${API_BASE}/lyrics/${song_hash}`);
+    try {
+        const response = await fetch(url.toString(), {
+            method: "GET",
+            headers: {
+                "X-Session": sessionKey
+            }
+        });
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-        return `<i>Failed to fetch lyrics: ${response.status}</i>`;
+        if (!response.ok) {
+            if (response.status === 404) {
+                return "<i>No lyrics found.</i>";
+            }
+            return `<i>Failed to fetch lyrics: ${response.status}</i>`;
+        }
+
+        const data = await response.json();
+        return data.lyrics || "<i>No lyrics found.</i>";
+
+    } catch (err) {
+        console.error("apiGetLyrics error:", err);
+        return "<i>Lyrics request failed.</i>";
     }
-
-    const data = await response.json();
-    return data.lyrics || null;
 }
 
 async function apiGetRecommendationsByScene() {

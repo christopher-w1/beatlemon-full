@@ -13,6 +13,7 @@ from backend.library_utils import song_recommendations, song_recommendations_gen
 from backend.library_service import LibraryService
 from backend.user_service import UserService
 from backend.scene_mapper import SceneMapper
+from backend.lyrics_service import LyricsService
 from config import Config
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -23,6 +24,7 @@ STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
 
 config = Config("data/config.json")
 library_service = LibraryService(config)
+lyrics_service = LyricsService("data/lyrics")
 user_service = UserService(registration_key=config.registration_key)
 scene_mapper = SceneMapper()
 sessions = {}
@@ -385,6 +387,21 @@ async def get_song_recommendations(song_hash: str,
         "status": "ok",
         "recommendations": recommendations
     }  
+
+
+@require_session(user_service)
+@app.get("/api/lyrics/song/{song_hash}")
+async def get_song_lyrics(song_hash: str):
+    if song_hash:
+        song = await library_service.get_song(song_hash)
+        if song:
+            title = song.title
+            for artist in [song.album_artist] + song.other_artists:
+                lyrics = await lyrics_service.get_lyrics(song_hash, artist, title)
+                if lyrics:
+                    return {"status": "ok", "lyrics": lyrics}
+            raise HTTPException(status_code=404, detail="No Lyrics Available.")
+    raise HTTPException(status_code=404, detail="Song not found in Library.")
    
     
 @require_session(user_service)

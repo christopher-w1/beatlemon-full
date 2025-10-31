@@ -516,11 +516,10 @@ function startLocalPlayback() {
 }
 
 async function updateLyrics() {
-    const lyrics = await externalGetLyrics(currentSong.artists.split(",")[0], currentSong.title);
+    //const lyrics = await externalGetLyrics(currentSong.artists.split(",")[0], currentSong.title);
+    const lyrics = await apiGetLyrics(currentSong.hash);
     document.getElementById("lyrics").innerHTML =
     lyrics ? lyrics.replace(/\n/g, "<br>")
-      .replace(/(<br>\s*){1,2}(?!<br>)/g, "<br>")
-      .replace(/(<br>\s*){3,}/g, "<br><br>")
     : "<i>No lyrics available.</i>";
 }
 
