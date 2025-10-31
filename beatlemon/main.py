@@ -43,6 +43,10 @@ app.add_middleware(
 )
 
 def schedule_cleanup(path: str, delay_sec: int = 600):
+    """
+    Schedules the cleanup of a file, for the purpose of limiting the
+    lifetime of temporary files like transcodings.
+    """
     import threading, time
     def cleanup():
         time.sleep(delay_sec)
@@ -57,7 +61,7 @@ def schedule_cleanup(path: str, delay_sec: int = 600):
 
 def require_session(user_service: "UserService", key_name="session_key"):
     """
-    Decorator für FastAPI routes. Extracts session key from request (JSON body or query param),
+    Decorator for FastAPI routes. Extracts session key from request (JSON body or query param),
     verifies it, and injects the user object as a keyword argument to the route.
     """
     def decorator(func):
@@ -148,6 +152,9 @@ async def search_songs(request: Request):
 @require_session(user_service)
 @app.post("/api/get_song_details")
 async def get_song_details(request: Request):
+    """
+    Receives a song_hash, returns a song dict.
+    """
     body = await request.json()
 
     song_hash = body.get("song_hash")
@@ -166,6 +173,9 @@ async def get_song_details(request: Request):
 @app.get("/api/get_cover_art")
 async def get_cover_art( cover_hash: str = Query(...),
     size: int | None = Query(None, gt=0, le=2000) ):
+    """
+    Returns image file for a cover hash.
+    """
     file_path = library_service.cover_map.get(cover_hash)
     if not file_path:
         raise HTTPException(status_code=404, detail="Cover art not found")
@@ -191,6 +201,10 @@ async def get_cover_art( cover_hash: str = Query(...),
 @require_session(user_service)
 @app.get("/api/stream/{song_hash}")
 async def stream_song(song_hash: str, request: Request, email: Optional[str] = None):
+    """
+    Endpoint for providing an audio stream.
+    """
+
     # Find file path from song hash
     song = await library_service.get_song(song_hash)
     if not song:
@@ -247,6 +261,11 @@ async def stream_song(song_hash: str, request: Request, email: Optional[str] = N
         
 @app.post("/api/register")
 async def register(request: Request):
+    """
+    Endpoint for registering a new user. 
+    Requires key, email, name, password.
+    Creates a session for the user if success.
+    """
     data = await request.json()
     try:
         await user_service.register(
@@ -273,6 +292,11 @@ async def register(request: Request):
 
 @app.post("/api/login")
 async def login(request: Request):
+    """
+    Endpoint for login.
+    Requires email, password.
+    Returns username, session_key, session id, email on success.
+    """
     data = await request.json()
     try:
         username, session_key, session_id = await user_service.login(
@@ -291,12 +315,19 @@ async def login(request: Request):
         
 @app.get("/api/ping")
 async def ping():
+    """
+    Ping endpoint, helps determining the communication delay between client and server.
+    """
     return {"status": "ok"}
 
 
 @require_session(user_service)
 @app.post("/api/session/update/{session_id}")
 async def update_session(session_id: str, request: Request):
+    """
+    Endpoint that receives session updates for synchronized playback between
+    multiple devices or users.
+    """
     data = await request.json()
     if not data:
         raise HTTPException(status_code=400, detail="Missing session data")
@@ -322,6 +353,9 @@ async def update_session(session_id: str, request: Request):
 @require_session(user_service)
 @app.get("/api/session/get/{session_id}")
 async def get_session(session_id: str):
+    """
+    Endpoint for acquiring session data for synchronized playback.
+    """
     session = sessions.get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -333,6 +367,9 @@ async def get_session(session_id: str):
 async def get_song_recommendations(song_hash: str, 
                                    seed_hash: str | None = Query(None), 
                                    session_id: str | None = Query(None)):
+    """
+    Endpoint for retrieving song recommendations from a song hash.
+    """
     song = await library_service.get_song(song_hash)
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
