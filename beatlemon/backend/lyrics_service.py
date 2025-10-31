@@ -78,21 +78,16 @@ class LyricsService:
         and preserves stanza separation accordingly.
         """
         text = text.replace("\r\n", "\n").strip()
-
-        parts = re.split(r'(\n+)', text)
-        breaks = [p for p in parts if p.startswith("\n")]
-        counts = [len(b) for b in breaks]
-
-        most_common = Counter(counts).most_common(1)
-        common_breaks = most_common[0][0] if most_common else 1
-
-        if common_breaks <= 1:
-            text = re.sub(r'\n{3,}', '\n\n', text)
-            text = re.sub(r'[ \t]+\n', '\n', text)
-            text = re.sub(r'\n[ \t]+', '\n', text)
+        text = text.replace("\n\n\n\n", "<br3>")
+        text = text.replace("\n\n\n", "<br3>")
+        text = text.replace("\n\n", "<br2>")
+        text = text.replace("\n", "<br1>")
+        most_common =   1 if text.count("<br1>") > text.count("<br2>") else (
+                        2 if text.count("<br2>") > text.count("<br3>") else 3 )
+        if most_common == 1:
+            text = text.replace("<br1>", "\n").replace("<br2>", "\n\n").replace("<br3>", "\n\n")
         else:
-            text = re.sub(r'\n{4,}', '\n\n\n', text)
-            text = re.sub(r'(?<!\n)\n{3}(?!\n)', '\n\n', text)
+            text = text.replace("<br1>", "\n").replace("<br2>", "\n").replace("<br3>", "\n\n")
             
         return text.strip()
 
