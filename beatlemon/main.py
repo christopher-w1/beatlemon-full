@@ -364,25 +364,35 @@ async def get_session(session_id: str):
         
         
 @require_session(user_service)
-@app.get("/api/recommendations/song/{song_hash}")
-async def get_song_recommendations(song_hash: str, 
-                                   seed_hash: str | None = Query(None), 
-                                   session_id: str | None = Query(None)):
-    """
-    Endpoint for retrieving song recommendations from a song hash.
-    """
+@app.post("/api/recommendations/song")
+async def get_song_recommendations(request: Request):
+    body = await request.json()
+    song_hash = body.get("song_hash")
+    seed_hash = body.get("seed_hash")
+    session_id = body.get("session_id")
+
+    if not song_hash:
+        raise HTTPException(status_code=400, detail="Missing song_hash")
+
     song = await library_service.get_song(song_hash)
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
+
     all_songs, _, _ = await library_service.get_snapshot()
     seed = await library_service.get_song(seed_hash) if seed_hash else None
-    previous = sessions.get(session_id, {}).get("playlist", [])
-    print(previous)
-    recommendations = [song.to_simple_dict() for 
-                       song in song_recommendations(song, all_songs, seed,
-                                                    threshold=0.1,
-                                                    previous_hashes=previous)]
-    return { "status": "ok", "recommendations": recommendations }  
+    previous = sessions.get(session_id, {}).get("playlist", []) if session_id else []
+
+    recommendations = [
+        s.to_simple_dict()
+        for s in song_recommendations(
+            song,
+            all_songs,
+            seed,
+            threshold=0.1,
+            previous_hashes=previous
+        )
+    ]
+    return {"status": "ok", "recommendations": recommendations}
 
 
 @require_session(user_service)

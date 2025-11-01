@@ -641,8 +641,7 @@ async function createGenreCards() {
     }
 }
     
-
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     updateUserGreeting();
     initVolumeControl();
     initSearch();
@@ -650,8 +649,9 @@ document.addEventListener("DOMContentLoaded", () => {
     initProgressBar();
     toggleAutoDj();
     initColorControls();
-    apiPing = api_get_ping();
     setTheme(25);
     createSceneCards();
     showView("recommendations-view")
+    await new Promise(r => setTimeout(r, 500));
+    apiPing = await api_get_ping();
 });
