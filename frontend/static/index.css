@@ -704,9 +704,18 @@ svg {
 }
 
 .context-option {
-    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     cursor: pointer;
-    white-space: nowrap;
+    padding: 6px 10px;
+}
+
+.context-option svg{
+    padding: 0px;
+    width: 13px;
+    height: 13px;
+    color: var(--text-color-2);
 }
 
 .context-option:hover {
@@ -765,7 +774,7 @@ grid-row: 3;
 #progress-bar {
     height: 100%;
     width: 100%;
-    background: var(--inactive-color);
+    background: var(--symbol-color);
     border-radius: 2px;
 }
 

@@ -369,7 +369,7 @@ async def song_recommendations(
         return []
 
     # Normalize similarity
-    max_sim = max(sim for s, sim in candidates if s.album_artist != song.album_artist)
+    max_sim = max([sim for s, sim in candidates if s.album_artist != song.album_artist] + [0.01])
     if max_sim > 0:
         candidates = [(s, sim / max_sim) for s, sim in candidates]
 
