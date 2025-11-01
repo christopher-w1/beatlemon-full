@@ -327,6 +327,96 @@ async function invokeAutoDJ() {
     });
 }
 
+function showPlaylistContextMenu(event, song, index) {
+    const oldMenu = document.getElementById("context-menu");
+    if (oldMenu) oldMenu.remove();
+    const menu = document.createElement("div");
+    menu.id = "context-menu";
+    menu.className = "context-menu";
+    menu.style.top = `${event.clientY}px`;
+    menu.style.left = `${event.clientX}px`;
+    function closeMenu() {
+        if (menu && menu.parentNode) menu.remove();
+    }
+    function runAndClose(fn) {
+        fn();
+        closeMenu();
+    }
+    menu.innerHTML = `
+        <div class="context-option" id="ctx-play">▶ Play "${song.title}" now</div>
+        <div class="context-option" id="ctx-remove">❌ Remove</div>
+        <div class="context-option" id="ctx-like">❤️ Like</div>
+        <div class="context-option" id="ctx-dislike">💔 Dislike</div>
+    `;
+    document.body.appendChild(menu);
+    document.getElementById("ctx-play").onclick = () => runAndClose(() => skipToSong(index));
+    document.getElementById("ctx-remove").onclick = () => runAndClose(() => removeFromPlaylist(index));
+    document.getElementById("ctx-like").onclick = () => runAndClose(() => likeSong(song.hash));
+    document.getElementById("ctx-dislike").onclick = () => runAndClose(() => dislikeSong(song.hash));
+    menu.addEventListener("mouseleave", () => {
+        setTimeout(() => {
+            if (!menu.matches(":hover")) closeMenu();
+        }, 200);
+    });
+}
+
+// Removes a song from the current playlist
+function removeFromPlaylist(index) {
+    index = Number(index);
+    if (!Number.isInteger(index) || index < 0 || index >= playlist.length) return;
+    const removed = playlist.splice(index, 1)[0];
+    const el = document.getElementById(`track-${index}`);
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    if (playlist.length === 0) {
+        stopLocalPlayback();
+        currentPlayingIndex = -1;
+        currentSong = null;
+        markPlaying(-1);
+        broadcastCurrentState();
+        return;
+    }
+    if (index < currentPlayingIndex) {
+        currentPlayingIndex -= 1;
+    } else if (index === currentPlayingIndex) {
+        const newIndex = Math.min(index, playlist.length - 1);
+        currentPlayingIndex = newIndex;
+        currentSong = playlist[newIndex];
+        if (isPlaying) {
+            skipToSong(newIndex);
+        } else {
+            markPlaying(newIndex);
+        }
+    }
+    reindexPlaylistDOM();
+    broadcastCurrentState();
+}
+
+// Resets playlist indices in case of changes
+function reindexPlaylistDOM() {
+    const container = document.getElementById("playlist-item-container");
+    if (!container) return;
+    const items = Array.from(container.children);
+    items.forEach((item, i) => {
+        const song = playlist[i];
+        if (!song) return;
+        item.id = `track-${i}`;
+        item.dataset.index = i;
+        item.dataset.hash = song.hash;
+        item.onclick = null;
+        item.replaceWith(item.cloneNode(true)); 
+    });
+    const freshItems = Array.from(container.children);
+    freshItems.forEach((item, i) => {
+        const song = playlist[i];
+        item.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            showPlaylistContextMenu(event, song, i);
+        });
+    });
+    markPlaying(currentPlayingIndex);
+}
+
 // Function to create and append a playlist element to the playlist container
 function addPlaylistItem(song) {
     let index = playlist.length;
@@ -339,7 +429,11 @@ function addPlaylistItem(song) {
     playlistItem.id = `track-${index}`;
     playlistItem.dataset.hash = song.hash;
     playlistItem.dataset.index = index;
-    playlistItem.onclick = () => skipToSong(index);
+    playlistItem.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        showPlaylistContextMenu(event, song, index);
+    });
     playlistItem.innerHTML = `
         <img src="${coverUrl}" class="cover" />
         <div class="info">
@@ -350,7 +444,6 @@ function addPlaylistItem(song) {
         </div>
         <div class="duration">${duration_formatted}</div>
     `;
-    console.log(`Adding song at index ${index}`)
     playlistContainer.appendChild(playlistItem);
 }
 
@@ -592,6 +685,16 @@ async function logout() {
     // Reload window to redirect to login page
     const parent_url = window.location.href.split('/').slice(0, -1).join('/');
     window.location.href = `${parent_url}/login.html`;
+}
+
+// --------------- ALGO FUNCTIONS ----------------
+
+function likeSong(hash) {
+    apiRateSong(hash, "like");
+}
+
+function dislikeSong(hash) {
+    apiRateSong(hash, "dislike");
 }
 
 

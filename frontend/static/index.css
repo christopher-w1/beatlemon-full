@@ -687,6 +687,28 @@ svg {
     margin: 0px;
 }
 
+.context-menu {
+    position: fixed;
+    background-color: var(--background-color);
+    border: 1px solid var(--divider-color);
+    color: var(--text-color-2);
+    border-radius: 4px;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    font-size: 14px;
+    overflow: hidden;
+}
+
+.context-option {
+    padding: 6px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.context-option:hover {
+    background-color: var(--inactive-color, #444);
+}
+
 /* --------------------- Playback View ---------------------- */
 
 #playback-cover {

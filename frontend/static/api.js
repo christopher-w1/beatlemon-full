@@ -87,7 +87,6 @@ async function apiRegisterUser({ registration_key, email, username, password, la
 }
 
 async function apiLoginUser({ email, password }) {
-  // Falls der Server das Session-Token als JSON liefert, hier speichern:
   const data = await request("login", {
     method: "POST",
     body: { email, password }
@@ -99,7 +98,6 @@ async function apiLoginUser({ email, password }) {
 }
 
 async function apiLogoutUser() {
-  // Kein Content-Type setzen, wenn kein Body nötig ist.
   const data = await request("logout", { method: "POST" });
   localStorage.removeItem("session_key");
   return data;
