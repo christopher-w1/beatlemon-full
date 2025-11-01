@@ -351,10 +351,22 @@ function showPlaylistContextMenu(event, song, index) {
         closeMenu();
     }
     menu.innerHTML = `
-        <div class="context-option" id="ctx-play">▶ Play "${song.title}" now</div>
-        <div class="context-option" id="ctx-remove">❌ Remove</div>
-        <div class="context-option" id="ctx-like">❤️ Like</div>
-        <div class="context-option" id="ctx-dislike">💔 Dislike</div>
+        <div class="context-option" id="ctx-play">
+            <i data-lucide="play"></i>
+            Play "${song.title}" now
+        </div>
+        <div class="context-option" id="ctx-remove">
+            <i data-lucide="x"></i>
+            Remove
+        </div>
+        <div class="context-option" id="ctx-like">
+            <i data-lucide="heart"></i>
+            Like
+        </div>
+        <div class="context-option" id="ctx-dislike">
+            <i data-lucide="heart-off"></i>
+            Dislike
+        </div>
     `;
     document.body.appendChild(menu);
     document.getElementById("ctx-play").onclick = () => runAndClose(() => skipToSong(index));
@@ -366,6 +378,7 @@ function showPlaylistContextMenu(event, song, index) {
             if (!menu.matches(":hover")) closeMenu();
         }, 200);
     });
+    lucide.createIcons(menu);
 }
 
 // Removes a song from the current playlist
