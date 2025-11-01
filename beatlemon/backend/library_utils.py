@@ -380,8 +380,10 @@ async def song_recommendations(
 
     weighted_candidates = [(s, sim * artist_penalty(s)) for s, sim in candidates]
     if user_email and profile_service:
+        dislikes = await profile_service.get_dislikes(user_email)
         weighted_candidates = [(s, sim * await profile_service.guess_likability(
-            user_email, s )) for s, sim in weighted_candidates]
+            user_email, s )) for s, sim in weighted_candidates if 
+            s.hash not in dislikes]
 
     # Split between "fresh" and "recently played" songs
     fresh_candidates = [(s, w) for s, w in weighted_candidates if s.hash not in previous_hashes]

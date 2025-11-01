@@ -307,11 +307,15 @@ hr {
     display: flex;
     flex-direction: column;
     gap: 0px;
-    margin-top: 16px;
+    margin-top: 8px;
     background: none;
     padding: 0px;
     overflow-y: auto;
     margin-bottom: 16px;
+}
+
+#search-results-title {
+    margin-top: 16px;
 }
 
 .search-result {

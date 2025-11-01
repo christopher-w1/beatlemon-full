@@ -19,6 +19,7 @@ let useAutoDj = false;
 let autoDjQueueLength = 4;
 let localMode = true;
 let showBigCover = true;
+let currentViewId = "recommendations-view";
 let preventGenreDrift = true;
 
 
@@ -83,6 +84,12 @@ function showView(viewId) {
         if (el) el.classList.add("hidden");
     }
 
+    if (viewId==="playback-view") {
+        document.getElementById("sidebar-cover").classList.toggle("hidden", true);
+    } else {
+        document.getElementById("sidebar-cover").classList.toggle("hidden", !showBigCover);
+    }
+
     const active = document.getElementById(viewId);
     if (active) active.classList.remove("hidden");
 
@@ -93,6 +100,7 @@ function showView(viewId) {
         `#top-panel button[onclick*="${viewId.split('-')[0]}"]`
     );
     if (clicked) clicked.classList.add("active");
+    currentViewId = viewId;
 }
 
 function setBackgroundColor(tone, saturation, brightness) {
@@ -148,6 +156,7 @@ function clearSearch() {
     const container = document.getElementById("search-results");
     if (!container) return;
     container.innerHTML = "";
+    document.getElementById("search-results-title").classList.toggle("hidden", true);
 }
 
 async function searchForSong(query) {
@@ -155,6 +164,7 @@ async function searchForSong(query) {
     const results = await api_search_songs(query);
     if (results && Array.isArray(results)) {
         renderSearchResults(results);
+        document.getElementById("search-results-title").classList.toggle("hidden", false);
     } else {
         console.warn("Unexpected search result format:", results);
         renderSearchResults([]);
@@ -165,16 +175,15 @@ function renderSearchResults(results) {
     clearSearch();
     const container = document.getElementById("search-results");
     
-    const searchMsg = document.createElement("div");
     if (!results || results.length === 0) {
+        const searchMsg = document.createElement("div");
         searchMsg.textContent = "No results found.";
         searchMsg.style.opacity = "0.5";
         container.appendChild(searchMsg);
+        document.getElementById("search-results-title").classList.toggle("hidden", true);
         return;
-    } else {
-        searchMsg.textContent = "Search Results";
     }
-    container.appendChild(searchMsg);
+    document.getElementById("search-results-title").classList.toggle("hidden", false);
 
     results.forEach((song, index) => {
         const el = document.createElement("div");
@@ -613,7 +622,7 @@ function startLocalPlayback() {
     const cover_url = api_get_cover_url(currentSong.cover_hash)
     document.getElementById("sidebar-cover").innerHTML=`<img src="${cover_url}">`
     document.getElementById("playback-cover").innerHTML=`<img src="${cover_url}">`
-    document.getElementById("sidebar-cover").classList.toggle("hidden", !showBigCover);
+    if (!currentViewId==="playback-view") document.getElementById("sidebar-cover").classList.toggle("hidden", !showBigCover);
     setVolume(currentVolume);
     isPlaying = true;
     broadcastCurrentState();
