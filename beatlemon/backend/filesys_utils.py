@@ -55,6 +55,9 @@ def calculate_loudness(file_path: str) -> tuple[Optional[float], Optional[float]
 
 def extract_cover(file_path: str) -> str:
     print(f"Try to extract cover from {file_path} ...")
+    if not os.path.exists(file_path):
+        print("Error: Path doesn't exist")
+        return ""
     audio = File(file_path)
     directory = os.path.dirname(file_path)
     image_data = None
