@@ -12,6 +12,12 @@ function getSessionKeyOrThrow() {
   return key;
 }
 
+function getSessionIdOrThrow() {
+  const id = localStorage.getItem("session_id");
+  if (!id) throw new Error("Missing session_id (not logged in)");
+  return id;
+}
+
 function authHeaders() {
   try {
     const token = getSessionKeyOrThrow();
@@ -191,10 +197,18 @@ async function apiGetSession(sessionId) {
   });
 }
 
-async function apiGetRecommendations(songHash, n = 10, songSeed = null, sessionId = null) {
+async function apiGetRecommendations(songHash, n = 10, songSeed = null) {
   if (!songHash) throw new Error("songHash is required");
+  const sessionId = getSessionIdOrThrow();
   const body = { song_hash: songHash, seed_hash: songSeed, session_id: sessionId, limit: n };
   const data = await request("recommendations/song", { method: "POST", body });
+  return data?.recommendations || [];
+}
+
+async function apiGetPersonalMix(n = 10) {
+  const sessionId = getSessionIdOrThrow();
+  const body = { session_id: sessionId, limit: n };
+  const data = await request("recommendations/personal", { method: "POST", body });
   return data?.recommendations || [];
 }
 
@@ -227,4 +241,79 @@ async function apiRateSong(song_hash, action) {
     body: { song_hash, action, email }
   });
   return data;
+}
+
+async function apiCheckAuth() {
+    const sessionId = localStorage.getItem("session_id");
+    const sessionKey = localStorage.getItem("session_key");
+
+    if (!sessionId || !sessionKey) return false;
+
+    try {
+        const response = await fetch(`${API_BASE}/check_auth`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId, session_key: sessionKey })
+        });
+
+        if (!response.ok) {
+            console.warn(`Auth check failed: ${response.status}`);
+            return false;
+        }
+
+        const data = await response.json();
+        return data.status === "ok";
+    } catch (err) {
+        console.error("Auth check error:", err);
+        return false;
+    }
+}
+
+async function apiGetUserSettings() {
+    const sessionId = localStorage.getItem("session_id");
+    if (!sessionId) throw new Error("Missing session_id in localStorage");
+
+    const url = new URL(`${API_BASE}/user/settings`);
+    url.searchParams.set("session_id", sessionId);
+
+    const response = await fetch(url.toString(), {
+        method: "GET"
+    });
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Failed to fetch settings: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.settings || {};
+}
+
+async function apiSaveUserSettings(settingsObj) {
+    const sessionId = localStorage.getItem("session_id");
+    if (!sessionId) throw new Error("Missing session_id in localStorage");
+
+    const response = await fetch(`${API_BASE}/user/settings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            session_id: sessionId,
+            settings: settingsObj
+        })
+    });
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Failed to save settings: ${response.status}`);
+    }
+
+    return true;
+}
+
+async function apiUpdateUserSetting(key, value) {
+    if (typeof key !== "string") throw new Error("Setting key must be a string");
+
+    const settings = await apiGetUserSettings();
+    settings[key] = value;
+    await apiSaveUserSettings(settings);
 }

@@ -319,8 +319,7 @@ async function invokeAutoDJ() {
     if (preventGenreDrift) {
         seed_hash =  playlist[0].hash;
     }
-    const session_id = localStorage.getItem("session_id");
-    let new_songs = await apiGetRecommendations(currentSong.hash, autoDjQueueLength, seed_hash, session_id);
+    let new_songs = await apiGetRecommendations(currentSong.hash, autoDjQueueLength, seed_hash);
     new_songs = new_songs.slice(0, autoDjQueueLength);
     new_songs.forEach(song => {
         addPlaylistItem(song);
@@ -514,6 +513,29 @@ async function createSceneCards() {
         console.error("Error while creating genre cards:", err);
     }
 }
+
+
+async function createPersonalMixCards() {
+    for (let n = 1; n <= 5; n++) {
+        try {
+            const songs = await apiGetPersonalMix();
+            if (!songs || !songs.length) continue;
+            const first_song = songs[0];
+            const img_url = api_get_cover_url(first_song.cover_hash);
+            const card = document.createElement("div");
+            card.className = "genre-recommendation";
+            card.innerHTML = `
+                <img src="${img_url}">
+                <b>Mix ${n}</b>
+            `;
+            card.onclick = () => replacePlaylist(songs);
+            document.getElementById("personal-recommendations").appendChild(card);
+        } catch (err) {
+            console.error(`Error while creating personal mix card ${n}:`, err);
+        }
+    }
+}
+
 
 function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
@@ -745,6 +767,9 @@ async function createGenreCards() {
 }
     
 document.addEventListener("DOMContentLoaded", async () => {
+    if (!await checkAuth()) {
+        return;
+    }
     updateUserGreeting();
     initVolumeControl();
     initSearch();
@@ -753,6 +778,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     toggleAutoDj();
     initColorControls();
     setTheme(25);
+    createPersonalMixCards();
     createSceneCards();
     showView("recommendations-view")
     await new Promise(r => setTimeout(r, 500));

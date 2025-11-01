@@ -8,6 +8,9 @@ class UserService:
         self.sessions_data = {} # key -> data
         self.session_ids = {}   # id  -> key
         self.users = {}
+        self.settings_cache = {}
+        self.settings_dir = "data/user_settings"
+        os.makedirs(self.settings_dir, exist_ok=True)
         self._load_users()
 
     def _load_users(self):
@@ -87,8 +90,52 @@ class UserService:
                 return True
         return False
 
-    async def get_user_by_session(self, session_key) -> dict | None:
+    async def get_user_by_session_key(self, session_key) -> dict:
         session = self.sessions_data.get(session_key)
-        if not session:
+        print(f"From Key {session_key} -> Found session:{session}")
+        if not session: return {}
+        email = session.get("email")
+        print(f"From Session {session} -> Found email:{email}")
+        if not email: return {}
+        user = self.users.get(email, {})
+        print(f"From Email {email} -> Found user:{user}")
+        return user
+    
+    async def get_email_by_session_id(self, session_id) -> str | None:
+        session_key = self.session_ids.get(session_id)
+        if not session_key: 
+            print(f"Error: No session_key found for id={session_key}")
             return None
-        return self.users.get(session["email"])
+        session = self.sessions_data.get(session_key)
+        if not session: 
+            print(f"Error: No session found for key={session_key}")
+            return None
+        email = session.get("email")
+        return email
+    
+    def _safe_filename(self, email: str) -> str:
+        hashed = hashlib.sha256(email.encode()).hexdigest()
+        return os.path.join(self.settings_dir, f"{hashed}.json")
+    
+    async def get_settings(self, email: str) -> dict:
+        if email in self.settings_cache:
+            return self.settings_cache[email]
+
+        filename = self._safe_filename(email)
+        if os.path.exists(filename):
+            async with self.lock:
+                with open(filename, "r", encoding="utf-8") as f:
+                    self.settings_cache[email] = json.load(f)
+        else:
+            self.settings_cache[email] = {}
+
+        return self.settings_cache[email]
+
+    async def save_settings(self, email: str, settings: dict) -> None:
+        filename = self._safe_filename(email)
+        async with self.lock:
+            with open(filename + ".tmp", "w", encoding="utf-8") as f:
+                json.dump(settings, f, ensure_ascii=False, indent=2)
+            os.replace(filename + ".tmp", filename)
+        self.settings_cache[email] = settings
+

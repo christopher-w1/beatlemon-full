@@ -13,6 +13,7 @@ from backend.model_album import Album
 from backend.model_artist import Artist
 from backend.filesys_utils import find_song_paths
 from backend.wikicrawler import get_band_genres
+from backend.taste_profile_service import TasteProfileService
 
 VARIOUS_TERMS = ["various artists", "verschiedene interpreten", "verschiedene künstler", "various"]
 
@@ -329,14 +330,16 @@ def calc_song_similarity(song1: Song, song2: Song) -> float:
     
     return min(1, max(genre_score, tag_score, artist_score)*date_score)
 
-def song_recommendations(
+async def song_recommendations(
     song: Song,
     all_songs: list[Song],
     seed: Song | None = None,
     threshold: float = 0.1,
     number: int = 10,
     scene: str | None = None,
-    previous_hashes: list[str] = []) -> list[Song]:
+    previous_hashes: list[str] = [],
+    user_email: str | None  = None,
+    profile_service: TasteProfileService | None = None) -> list[Song]:
     """
     Get weighted random recommendations for a song, considering artist diversity
     and recent playback history.
@@ -376,6 +379,9 @@ def song_recommendations(
         return 1 / max(1, count)
 
     weighted_candidates = [(s, sim * artist_penalty(s)) for s, sim in candidates]
+    if user_email and profile_service:
+        weighted_candidates = [(s, sim * await profile_service.guess_likability(
+            user_email, s )) for s, sim in weighted_candidates]
 
     # Split between "fresh" and "recently played" songs
     fresh_candidates = [(s, w) for s, w in weighted_candidates if s.hash not in previous_hashes]
@@ -435,3 +441,57 @@ def song_recommendations_genre(genre: str,
         recommendations.extend(remaining[:number - len(recommendations)])
 
     return recommendations[:number]
+
+
+async def personal_song_recommendations(
+    user_email: str, profile_service: "TasteProfileService",
+    all_songs: List["Song"], n: int = 10 ) -> List["Song"]:
+    """
+    Recommend n songs purely from the users taste profile.
+    """
+    candidates: list[tuple["Song", float]] = []
+
+    for s in all_songs:
+        if getattr(s, "duration", 0) < 120:
+            continue
+
+        try:
+            lik = await profile_service.guess_likability(user_email, s)
+        except Exception:
+            lik = 1.0
+
+        popularity = getattr(s, "popularity", 0.5)
+        try:
+            popularity = float(popularity)
+        except Exception:
+            popularity = 0.5
+
+        popularity = max(0.01, min(1.0, popularity))
+        weight = max(0.0, float(lik)) * popularity
+        if weight > 0.0:
+            candidates.append((s, weight))
+
+    if not candidates:
+        return random.sample(all_songs, min(n, len(all_songs)))
+
+    max_w = max(w for _, w in candidates)
+    pool = [(s, (w / max_w) if max_w > 0 else 0.0) for s, w in candidates]
+
+    chosen: list["Song"] = []
+    artist_counts: dict[str, int] = {}
+
+    while pool and len(chosen) < n:
+        adjusted = []
+        for s, w in pool:
+            count = artist_counts.get(getattr(s, "album_artist", ""), 0)
+            adjusted.append((s, w / (1 + count)))
+
+        songs, weights = zip(*adjusted)
+        pick = random.choices(songs, weights=weights, k=1)[0]
+        chosen.append(pick)
+
+        artist = getattr(pick, "album_artist", "")
+        artist_counts[artist] = artist_counts.get(artist, 0) + 1
+        pool = [(s, w) for s, w in pool if s is not pick]
+
+    return chosen[:n]

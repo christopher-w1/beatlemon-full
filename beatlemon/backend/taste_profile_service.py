@@ -80,18 +80,20 @@ class TasteProfileService:
                 await self._save_user_email(user_email)
 
     def _add_to_profile(self, profile: dict[str, float], song: Song) -> None:
-        profile[song.album_artist] += 1.0
+        profile[f"artist${song.album_artist}"] += 1.0
+        profile[f"album${song.album}"] += 0.1
         for artist in song.other_artists:
-            profile[artist] += 0.5
+            profile[f"artist${artist}"] += 0.5
         for genre in song.genres:
-            profile[genre] += 1.0
+            profile[f"genre${genre}"] += 1.0
 
     def _remove_from_profile(self, profile: dict[str, float], song: Song) -> None:
-        profile[song.album_artist] -= 1.0
+        profile[f"artist${song.album_artist}"] -= 1.0
+        profile[f"album${song.album}"] -= 0.1
         for artist in song.other_artists:
-            profile[artist] -= 0.5
+            profile[f"artist${artist}"] -= 0.5
         for genre in song.genres:
-            profile[genre] -= 1.0
+            profile[f"genre${genre}"] -= 1.0
 
         for key in list(profile):
             if profile[key] <= 0:
@@ -131,16 +133,28 @@ class TasteProfileService:
         pos, neg = self._profile_pos[user_email], self._profile_neg[user_email]
         total_score = 0.0
         total_weight = 0.0
-        for item in song.other_artists + song.genres + [song.album_artist]:
-            p, n = pos.get(item, 0.0), neg.get(item, 0.0)
+        for artist in song.other_artists + [song.album_artist]:
+            p, n = pos.get(f"artist${artist}", 0.0), neg.get(f"artist${artist}", 0.0)
             if p > 0 or n > 0:
                 total_score += (p - n) / (p + n)
                 total_weight += 1
+        for genre in song.genres:
+            p, n = pos.get(f"genre${genre}", 0.0), neg.get(f"genre${genre}", 0.0)
+            if p > 0 or n > 0:
+                total_score += (p - n) / (p + n)
+                total_weight += 1
+        p, n = pos.get(f"album${song.album}", 0.0), neg.get(f"album${song.album}", 0.0)
+        if p > 0 or n > 0:
+            total_score += (p - n) / (p + n)
+            total_weight += 1
         if total_weight == 0.0:
-            return 0.5
+            return 1.0
         avg_score = total_score / total_weight
-        normalized = 0.5 + (avg_score * 0.5)
-        return round(normalized, 3)
+        if avg_score < 0:
+            return -1.0 / (avg_score - 1.0)
+        if avg_score > 0:
+            return min(10, 1 + avg_score)
+        return 1
     
     async def get_user_rating(self, user_email: str, song: Song) -> str:
         await self._load_user_email(user_email)

@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi import Query, WebSocket
 from PIL import Image
-from backend.library_utils import song_recommendations, song_recommendations_genre
+from backend.library_utils import personal_song_recommendations, song_recommendations, song_recommendations_genre
 from backend.library_service import LibraryService
 from backend.user_service import UserService
 from backend.scene_mapper import SceneMapper
@@ -26,7 +26,7 @@ STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
 config = Config("data/config.json")
 library_service = LibraryService(config)
 lyrics_service = LyricsService("data/lyrics")
-taste_profiles = TasteProfileService("data/taste_profiles")
+profile_service = TasteProfileService("data/taste_profiles")
 user_service = UserService(registration_key=config.registration_key)
 scene_mapper = SceneMapper()
 sessions = {}
@@ -80,7 +80,7 @@ def require_session(user_service: "UserService", key_name="session_key"):
             if not session_key:
                 raise HTTPException(status_code=401, detail="Session key missing")
 
-            user = await user_service.get_user_by_session(session_key)
+            user = await user_service.get_user_by_session_key(session_key)
             if not user:
                 raise HTTPException(status_code=401, detail="Invalid session key")
 
@@ -381,17 +381,65 @@ async def get_song_recommendations(request: Request):
     all_songs, _, _ = await library_service.get_snapshot()
     seed = await library_service.get_song(seed_hash) if seed_hash else None
     previous = sessions.get(session_id, {}).get("playlist", []) if session_id else []
+    user_email = await user_service.get_email_by_session_id(session_id)
 
     recommendations = [
         s.to_simple_dict()
-        for s in song_recommendations(
+        for s in await song_recommendations(
             song,
             all_songs,
             seed,
             threshold=0.1,
-            previous_hashes=previous
+            previous_hashes=previous,
+            user_email=user_email,
+            profile_service=profile_service
         )
     ]
+    return {"status": "ok", "recommendations": recommendations}
+
+@app.post("/api/check_auth")
+async def check_auth(request: Request):
+    body = await request.json()
+    session_id = body.get("session_id")
+    session_key = body.get("session_key")
+    if not await user_service.get_email_by_session_id(session_id):
+        raise HTTPException(status_code=401, detail="Invalid session id")
+    if not await user_service.get_user_by_session_key(session_key):
+        raise HTTPException(status_code=401, detail="Invalid session key")
+    return { "status": "ok" }
+
+
+@require_session(user_service)
+@app.post("/api/recommendations/personal")
+async def get_song_recommendations4(request: Request):
+    body = await request.json()
+    session_id = body.get("session_id")
+    limit = body.get("limit")
+
+    all_songs, _, _ = await library_service.get_snapshot()
+    user_email = await user_service.get_email_by_session_id(session_id)
+
+    if not user_email:
+        raise HTTPException(status_code=400, detail="Missing user email")
+
+    recommendation = (await personal_song_recommendations(
+            user_email,
+            profile_service,
+            all_songs,
+            1
+        ))[0]
+    recommendations = [recommendation.to_simple_dict()] + [
+        s.to_simple_dict()
+        for s in await song_recommendations(
+            recommendation,
+            all_songs,
+            recommendation,
+            threshold=0.1,
+            previous_hashes=[],
+            user_email=user_email,
+            profile_service=profile_service
+        )
+    ][:limit-1]
     return {"status": "ok", "recommendations": recommendations}
 
 
@@ -443,13 +491,13 @@ async def rate_song(request: Request):
         raise HTTPException(status_code=404, detail="Song not found")
 
     if action == "like":
-        await taste_profiles.like_song(email, song)
+        await profile_service.like_song(email, song)
         return {"status": "ok", "message": "Song liked"}
     if action == "dislike":
-        await taste_profiles.dislike_song(email, song)
+        await profile_service.dislike_song(email, song)
         return {"status": "ok", "message": "Song disliked"}
     if action == "dontcare":
-        await taste_profiles.remove_rating(email, song)
+        await profile_service.remove_rating(email, song)
         return {"status": "ok", "message": "Rating removed"}
     raise HTTPException(status_code=400, detail="Invalid action")
 
@@ -465,8 +513,39 @@ async def get_user_rating(request: Request):
     song = await library_service.get_song(song_hash)
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
-    rating = await taste_profiles.get_user_rating(email, song)
+    rating = await profile_service.get_user_rating(email, song)
     return {"status": "ok", "rating": rating}
+
+
+@app.get("/api/user/settings")
+async def get_user_settings(request: Request):
+    session_id = request.query_params.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Missing session_id")
+
+    email = await user_service.get_email_by_session_id(session_id)
+    if not email:
+        raise HTTPException(status_code=401, detail="Invalid session_id")
+
+    settings = await user_service.get_settings(email)
+    return {"status": "ok", "settings": settings}
+
+
+@app.post("/api/user/settings")
+async def save_user_settings(request: Request):
+    body = await request.json()
+    session_id = body.get("session_id")
+    new_settings = body.get("settings")
+
+    if not session_id or new_settings is None:
+        raise HTTPException(status_code=400, detail="Missing session_id or settings")
+
+    email = await user_service.get_email_by_session_id(session_id)
+    if not email:
+        raise HTTPException(status_code=401, detail="Invalid session_id")
+
+    await user_service.save_settings(email, new_settings)
+    return {"status": "ok"}
 
 
 @app.get("/", response_class=RedirectResponse)
