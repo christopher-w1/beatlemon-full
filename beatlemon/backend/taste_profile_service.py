@@ -6,8 +6,8 @@ class TasteProfileService:
     def __init__(self, storage_dir: str = "data/taste_profiles"):
         self.storage_dir = storage_dir
         os.makedirs(self.storage_dir, exist_ok=True)
-        self._likes: dict[str, set[str]] = defaultdict(set)
-        self._dislikes: dict[str, set[str]] = defaultdict(set)
+        self._likes: dict[str, list[str]] = defaultdict(list)
+        self._dislikes: dict[str, list[str]] = defaultdict(list)
         self._profile_pos: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
         self._profile_neg: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
         self._locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
@@ -28,8 +28,8 @@ class TasteProfileService:
                     return json.load(f)
 
             data = await asyncio.to_thread(read)
-            self._likes[user_email] = set(data.get("likes", []))
-            self._dislikes[user_email] = set(data.get("dislikes", []))
+            self._likes[user_email] = data.get("likes", [])
+            self._dislikes[user_email] = data.get("dislikes", [])
             self._profile_pos[user_email] = defaultdict(float, data.get("positive_profile", {}))
             self._profile_neg[user_email] = defaultdict(float, data.get("negative_profile", {}))
 
@@ -61,7 +61,7 @@ class TasteProfileService:
                 self._remove_from_profile(self._profile_neg[user_email], song)
 
             if song.hash not in self._likes[user_email]:
-                self._likes[user_email].add(song.hash)
+                self._likes[user_email].append(song.hash)
                 self._add_to_profile(self._profile_pos[user_email], song)
                 await self._save_user_email(user_email)
 
@@ -75,7 +75,7 @@ class TasteProfileService:
                 self._remove_from_profile(self._profile_pos[user_email], song)
 
             if song.hash not in self._dislikes[user_email]:
-                self._dislikes[user_email].add(song.hash)
+                self._dislikes[user_email].append(song.hash)
                 self._add_to_profile(self._profile_neg[user_email], song)
                 await self._save_user_email(user_email)
 
@@ -110,11 +110,11 @@ class TasteProfileService:
             await self._save_user_email(user_email)
 
 
-    async def get_likes(self, user_email: str) -> set[str]:
+    async def get_likes(self, user_email: str) -> list[str]:
         await self._load_user_email(user_email)
         return self._likes[user_email]
 
-    async def get_dislikes(self, user_email: str) -> set[str]:
+    async def get_dislikes(self, user_email: str) -> list[str]:
         await self._load_user_email(user_email)
         return self._dislikes[user_email]
 
