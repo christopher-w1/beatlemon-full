@@ -14,6 +14,7 @@ from backend.library_service import LibraryService
 from backend.user_service import UserService
 from backend.scene_mapper import SceneMapper
 from backend.lyrics_service import LyricsService
+from backend.taste_profile_service import TasteProfileService
 from config import Config
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -25,6 +26,7 @@ STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
 config = Config("data/config.json")
 library_service = LibraryService(config)
 lyrics_service = LyricsService("data/lyrics")
+taste_profiles = TasteProfileService("data/taste_profiles")
 user_service = UserService(registration_key=config.registration_key)
 scene_mapper = SceneMapper()
 sessions = {}
@@ -320,7 +322,7 @@ async def ping():
     """
     Ping endpoint, helps determining the communication delay between client and server.
     """
-    return {"status": "ok"}
+    return { "status": "ok" }
 
 
 @require_session(user_service)
@@ -346,10 +348,7 @@ async def update_session(session_id: str, request: Request):
         "last_update": datetime.utcnow()
     }
 
-    return {
-        "status": "ok",
-        "guest_commands": guest_commands
-    }
+    return { "status": "ok", "guest_commands": guest_commands }
 
 
 @require_session(user_service)
@@ -383,10 +382,7 @@ async def get_song_recommendations(song_hash: str,
                        song in song_recommendations(song, all_songs, seed,
                                                     threshold=0.1,
                                                     previous_hashes=previous)]
-    return {
-        "status": "ok",
-        "recommendations": recommendations
-    }  
+    return { "status": "ok", "recommendations": recommendations }  
 
 
 @require_session(user_service)
@@ -410,10 +406,7 @@ async def get_song_recommendations2(genre: str):
     all_songs, _, _ = await library_service.get_snapshot()
     recommendations = [song.to_simple_dict() for 
                        song in song_recommendations_genre(genre, all_songs, 0.5, 10)]
-    return {
-        "status": "ok",
-        "recommendations": recommendations
-    }
+    return { "status": "ok", "recommendations": recommendations }
     
     
 @require_session(user_service)
@@ -421,10 +414,49 @@ async def get_song_recommendations2(genre: str):
 async def get_song_recommendations3(n: str):
     all_songs, _, _ = await library_service.get_snapshot()
     scene_dict = await scene_mapper.sample_songs_by_scene(all_songs, int(n))
-    return {
-        "status": "ok",
-        "recommendations": scene_dict
-    }
+    return { "status": "ok", "recommendations": scene_dict }
+
+
+@require_session(user_service)
+@app.post("/api/song/rate")
+async def rate_song(request: Request):
+    body = await request.json()
+    song_hash = body.get("song_hash")
+    action = body.get("action")
+    email = body.get("email")
+
+    if not song_hash or not action or not email:
+        raise HTTPException(status_code=400, detail="Missing song_hash, action or email")
+
+    song = await library_service.get_song(song_hash)
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+
+    if action == "like":
+        await taste_profiles.like_song(email, song)
+        return {"status": "ok", "message": "Song liked"}
+    if action == "dislike":
+        await taste_profiles.dislike_song(email, song)
+        return {"status": "ok", "message": "Song disliked"}
+    if action == "dontcare":
+        await taste_profiles.remove_rating(email, song)
+        return {"status": "ok", "message": "Rating removed"}
+    raise HTTPException(status_code=400, detail="Invalid action")
+
+
+@require_session(user_service)
+@app.post("/api/song/get-user-rating")
+async def get_user_rating(request: Request):
+    body = await request.json()
+    song_hash = body.get("song_hash")
+    email = body.get("email")
+    if not song_hash or not email:
+        raise HTTPException(status_code=400, detail="Missing song_hash or email")
+    song = await library_service.get_song(song_hash)
+    if not song:
+        raise HTTPException(status_code=404, detail="Song not found")
+    rating = await taste_profiles.get_user_rating(email, song)
+    return {"status": "ok", "rating": rating}
 
 
 @app.get("/", response_class=RedirectResponse)
