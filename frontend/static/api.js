@@ -220,11 +220,15 @@ async function apiGetRecommendationsGenre(genre) {
 
 async function apiGetLyrics(song_hash) {
   if (!song_hash) throw new Error("song_hash is required");
-  const data = await request(`lyrics/song/${encodeURIComponent(song_hash)}`, {
-    method: "GET",
-    cache: "no-store"
-  });
-  return data?.lyrics || "<i>No lyrics found.</i>";
+  try {
+    const data = await request(`lyrics/song/${encodeURIComponent(song_hash)}`, {
+      method: "GET",
+      cache: "no-store"
+    });
+    return data?.lyrics || "<i>No lyrics found.</i>";
+  } catch (error) {
+    return "<i>No lyrics found.</i>";
+  }
 }
 
 async function apiGetRecommendationsByScene() {
