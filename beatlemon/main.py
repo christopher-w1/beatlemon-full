@@ -26,7 +26,7 @@ STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
 config = Config("data/config.json")
 library_service = LibraryService(config)
 lyrics_service = LyricsService("data/lyrics")
-profile_service = TasteProfileService("data/taste_profiles")
+profile_service = TasteProfileService(library_service, "data/taste_profiles")
 user_service = UserService(registration_key=config.registration_key)
 scene_mapper = SceneMapper()
 sessions = {}
