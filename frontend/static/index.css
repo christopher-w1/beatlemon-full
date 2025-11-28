@@ -545,6 +545,7 @@ svg {
     color: var(--symbol-color);
     width: 18px;
     stroke-width: 2px;
+    padding: 1px;
 }
 
 .active svg {
@@ -614,6 +615,11 @@ svg {
     border-bottom: 1px solid var(--divider-color-2);
     color: var(--text-color-2);
     font-family: sans-serif;
+}
+
+.playlist-item:hover {
+    cursor: pointer;
+    background-color: var(--bar-color);
 }
 
 .playlist-item .cover {
@@ -724,38 +730,43 @@ svg {
 
 /* --------------------- Playback View ---------------------- */
 
+#playback-view {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 10px;
+}
+
 #playback-cover {
-grid-row: 3;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0;
-    margin-top: 4px;
-    padding: 0;
-    border: 1px solid var(--divider-color-2);
-    border-radius: 4px;
-    width: calc(100% - 2px);  
-    height: auto; 
-    max-height: calc(100vh - 186px);
-    overflow: hidden;
+  flex: 1 1 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--divider-color-2);
+  border-radius: 4px;
+  overflow: hidden;
+  max-height: calc(100vh - 186px);
+  max-width: calc(100vh - 186px);
 }
 
 #playback-cover img {
-    display: block;
-    height: auto;
-    max-height: calc(100vh - 186px);
-    max-width: 100%;
-    object-fit: contain;
-    border-radius: 3px;
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: 3px;
 }
 
 #lyrics {
-    width: 100%;
-    margin: 16px;
-    font-size: 14px;
-    line-height: 1.7;
-    text-align: center;
-    color: var(--text-color-2)
+  flex: 1 1 300px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  text-align: center;
+  color: var(--text-color-2);
 }
 
 /* ------------------ Playback Control Bar ------------------ */
@@ -807,5 +818,5 @@ grid-row: 3;
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
