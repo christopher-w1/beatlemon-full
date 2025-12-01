@@ -568,7 +568,7 @@ async def serve_login():
 
 def main():
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=config.rest_api_port)
+    uvicorn.run(app, host="127.0.0.1", port=config.rest_api_port)
 
 
 if __name__ == "__main__":
